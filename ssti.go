@@ -93,7 +93,6 @@ func test_rce(userStr string) {
 	// Create a buffer to capture the standard output
 	var out bytes.Buffer
 	cmd.Stdout = &out
-
 	// Run the command
 	err := cmd.Run()
 	if err != nil {
