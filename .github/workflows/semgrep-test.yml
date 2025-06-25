@@ -11,9 +11,11 @@ permissions:
   pull-requests: write # to comment on pull requests
 
 jobs:
-  semgrep:
-    name: Semgrep SAST Scan
+  opengrep:
+    name: OpenGrep SAST Scan
     runs-on: ubuntu-latest
+    container:
+      image: opengrep/opengrep
 
     steps:
       # Checkout the code so Semgrep can scan it.
@@ -23,18 +25,19 @@ jobs:
       # Run the Semgrep scan.
       # The `semgrep-action` is the official action from Semgrep.
       # It will scan the repository and output the results in SARIF format.
-      - name: Run Semgrep SAST Scan
-        id: semgrep
-        uses: returntocorp/semgrep-action@v2
-        with:
-          # The SARIF file is used for processing the results in the next step.
-          generate-sarif: "true"
+
+      - name: Run Opengrep SAST Scan
+        id: opengrep
+        run: opengrep ci --sarif-output=opengrep.sarif
+        outputs:
+          sarif-file:
+            description: "opengrep.sarif"
 
       # This step reads the SARIF file, filters for high and critical vulnerabilities,
       # and then formats and posts a comment to the pull request.
       - name: Parse Semgrep SARIF and Comment on PR
         # This step will only run if the Semgrep scan produced a SARIF file.
-        if: always() && steps.semgrep.outputs.sarif-file
+        if: always() && steps.opengrep.outputs.sarif-file
         run: |
           # Use the jq utility to parse the SARIF file.
           # We are looking for results where the level is "error" (which maps to high/critical).
