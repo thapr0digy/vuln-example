@@ -37,9 +37,7 @@ jobs:
           # Use git diff to find files changed compared to the PR's base commit.
           # The output is saved to a file for the next step.
           # The SHAs from the pull_request event are the most reliable references.
-          pwd
-          ls -alF
-          git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} > changed_files.txt
+          git diff --name-only --diff-filter=AM "origin/${{ github.event.pull_request.base.ref }}" > changed_files.txt
 
       - name: Run Opengrep SAST Scan
         id: opengrep
