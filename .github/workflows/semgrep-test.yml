@@ -38,8 +38,6 @@ jobs:
           # The output is saved to a file for the next step.
           # The SHAs from the pull_request event are the most reliable references.
           git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} > changed_files.txt
-          echo "Changed files:"
-          cat changed_files.txt
 
       - name: Run Opengrep SAST Scan
         id: opengrep
