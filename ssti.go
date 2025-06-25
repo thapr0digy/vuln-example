@@ -99,6 +99,7 @@ func test_rce(userStr string) {
 	if err != nil {
 		log.Fatalf("Command failed with error: %v", err)
 	}
+
 	// Print the captured output
 	fmt.Printf("Command output:\n%s\n", out.String())
 }
