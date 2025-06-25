@@ -29,10 +29,22 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/opengrep/opengrep/main/install.sh | bash
           export PATH=$HOME/.local/bin:$PATH
 
+      # Identify changed files between the PR branch and its base.
+      # The output is a list of file paths.
+      - name: Get changed files
+        id: changed_files
+        run: |
+          # Use git diff to find files changed compared to the PR's base commit.
+          # The output is saved to a file for the next step.
+          # The SHAs from the pull_request event are the most reliable references.
+          git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} > changed_files.txt
+          echo "Changed files:"
+          cat changed_files.txt
+
       - name: Run Opengrep SAST Scan
         id: opengrep
         run: |
-          /home/runner/.opengrep/cli/v1.4.2/opengrep ci --sarif-output=opengrep.sarif
+          /home/runner/.opengrep/cli/v1.4.2/opengrep scan --sarif-output=opengrep.sarif < changed_files.txt
           echo "SARIF_FILENAME=opengrep.sarif" >> "$GITHUB_OUTPUT"
 
       # This step reads the SARIF file, filters for high and critical vulnerabilities,
