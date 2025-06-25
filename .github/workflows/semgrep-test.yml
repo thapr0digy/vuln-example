@@ -27,12 +27,12 @@ jobs:
       - name: Install Opengrep
         run: |
           curl -fsSL https://raw.githubusercontent.com/opengrep/opengrep/main/install.sh | bash
-          export PATH='/home/runner/.opengrep/cli/latest':$PATH
+          export PATH=$HOME/.local/bin:$PATH
 
       - name: Run Opengrep SAST Scan
         id: opengrep
         run: |
-          opengrep ci --sarif-output=opengrep.sarif
+          /home/runner/.opengrep/cli/v1.4.2/opengrep ci --sarif-output=opengrep.sarif
           echo "SARIF_FILENAME=opengrep.sarif" >> "$GITHUB_OUTPUT"
 
       # This step reads the SARIF file, filters for high and critical vulnerabilities,
