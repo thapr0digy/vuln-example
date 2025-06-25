@@ -1,0 +1,64 @@
+# .github/workflows/semgrep-sast-scan.yml
+name: Semgrep SAST Scan and PR Commenter
+
+# This workflow is triggered on pull requests to the main branch.
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read # to check out private repos
+  pull-requests: write # to comment on pull requests
+
+jobs:
+  semgrep:
+    name: Semgrep SAST Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the code so Semgrep can scan it.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Run the Semgrep scan.
+      # The `semgrep-action` is the official action from Semgrep.
+      # It will scan the repository and output the results in SARIF format.
+      - name: Run Semgrep SAST Scan
+        id: semgrep
+        uses: returntocorp/semgrep-action@v2
+        with:
+          # The SARIF file is used for processing the results in the next step.
+          generate-sarif: "true"
+
+      # This step reads the SARIF file, filters for high and critical vulnerabilities,
+      # and then formats and posts a comment to the pull request.
+      - name: Parse Semgrep SARIF and Comment on PR
+        # This step will only run if the Semgrep scan produced a SARIF file.
+        if: always() && steps.semgrep.outputs.sarif-file
+        run: |
+          # Use the jq utility to parse the SARIF file.
+          # We are looking for results where the level is "error" (which maps to high/critical).
+          # You can customize the jq query to match your organization's severity mappings.
+          # Here, we extract the ruleId, the message text, and the file path.
+          high_severity_findings=$(jq -r '.runs[].results[] | select(.level == "error") | "- **Rule:** `\(.ruleId)`\n  - **Description:** \(.message.text)\n  - **File:** `\(.locations[0].physicalLocation.artifactLocation.uri)`"' "${{ steps.semgrep.outputs.sarif-file }}")
+
+          if [ -z "$high_severity_findings" ]; then
+            echo "No high or critical severity vulnerabilities found."
+            exit 0
+          fi
+
+          # Construct the comment to be posted on the pull request.
+          comment_body="### Semgrep SAST Scan Results
+
+          Found the following high or critical severity vulnerabilities:
+
+          ${high_severity_findings}"
+
+          # Use the GitHub CLI to post the comment.
+          # The gh command is pre-installed on GitHub-hosted runners.
+          gh pr comment "${{ github.event.pull_request.number }}" --body "$comment_body"
+        env:
+          # The GITHUB_TOKEN is required to use the GitHub CLI.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+
