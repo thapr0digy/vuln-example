@@ -14,8 +14,6 @@ jobs:
   opengrep:
     name: Opengrep SAST Scan
     runs-on: ubuntu-latest
-    container:
-      image: opengrep/opengrep
 
     steps:
       # Checkout the code so Semgrep can scan it.
@@ -25,6 +23,10 @@ jobs:
       # Run the Semgrep scan.
       # The `semgrep-action` is the official action from Semgrep.
       # It will scan the repository and output the results in SARIF format.
+
+      - name: Install Opengrep
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/opengrep/opengrep/main/install.sh | bash
 
       - name: Run Opengrep SAST Scan
         id: opengrep
