@@ -90,7 +90,6 @@ func no_match(w http.ResponseWriter, req *http.Request) {
 
 func test_rce(userStr string) {
 	cmd := exec.Command(userStr)
-	// Create a buffer to capture the standard output
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	// Run the command
