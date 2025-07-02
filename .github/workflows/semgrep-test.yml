@@ -22,6 +22,11 @@ jobs:
           ref: ${{ github.base_ref }} # The branch the PR is targeting
           path: baseline_code
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13' 
+
       - name: Install Opengrep
         run: |
           curl -fsSL https://raw.githubusercontent.com/opengrep/opengrep/main/install.sh | bash
