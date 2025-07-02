@@ -52,8 +52,8 @@ jobs:
         with:
           name: opengrep-sarifs
           path: |
-            ./opengrep-base.sarif
-            ./opengrep-pr.sarif
+            ./opengrep-base.json
+            ./opengrep-pr.json
 
       # This step reads the SARIF file, filters for high and critical vulnerabilities,
       # and then formats and posts a comment to the pull request.
