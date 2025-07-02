@@ -11,44 +11,59 @@ permissions:
   pull-requests: write # to comment on pull requests
 
 jobs:
-  semgrep:
-    name: Semgrep SAST Scan
+  opengrep:
+    name: Opengrep SAST Scan
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the code so Semgrep can scan it.
-      - name: Checkout repository
+      - name: Checkout base branch
         uses: actions/checkout@v4
-
-      # Run the Semgrep scan.
-      # The `semgrep-action` is the official action from Semgrep.
-      # It will scan the repository and output the results in SARIF format.
-      - name: Run Semgrep SAST Scan
-        id: semgrep
-        uses: returntocorp/semgrep-action@v2
         with:
-          # The SARIF file is used for processing the results in the next step.
-          generate-sarif: "true"
+          ref: ${{ github.base_ref }} # The branch the PR is targeting
+          path: baseline_code
+
+      - name: Install Opengrep
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/opengrep/opengrep/main/install.sh | bash
+          export PATH=$HOME/.local/bin:$PATH
+
+      - name: Run Opengrep Base Scan
+        id: opengrep-base
+        run: |
+          echo $PWD
+          /home/runner/.opengrep/cli/v1.4.2/opengrep scan --config "p/default" --json-output=opengrep-base.json baseline_code
+          echo "SARIF_BASE_FILENAME=opengrep-base.json" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }} # The PR's branch
+          path: pr_code
+
+      - name: Run Opengrep PR Scan
+        id: opengrep-pr
+        run: |
+          echo $PWD
+          /home/runner/.opengrep/cli/v1.4.2/opengrep scan --config "p/default" --json-output=opengrep-pr.json pr_code
+          echo "SARIF_PR_FILENAME=opengrep-pr.json" >> "$GITHUB_OUTPUT"
+
+      - name: Upload sarif files as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: opengrep-sarifs
+          path: |
+            ./opengrep-base.json
+            ./opengrep-pr.json
 
       # This step reads the SARIF file, filters for high and critical vulnerabilities,
       # and then formats and posts a comment to the pull request.
       - name: Parse Semgrep SARIF and Comment on PR
         # This step will only run if the Semgrep scan produced a SARIF file.
-        if: always() && steps.semgrep.outputs.sarif-file
+        if: always() && steps.opengrep-base.outputs.SARIF_BASE_FILENAME && steps.opengrep-pr.outputs.SARIF_PR_FILENAME
         run: |
-          # Use the jq utility to parse the SARIF file.
-          # We are looking for results where the level is "error" (which maps to high/critical).
-          # You can customize the jq query to match your organization's severity mappings.
-          # Here, we extract the ruleId, the message text, and the file path.
-          high_severity_findings=$(jq -r '.runs[].results[] | select(.level == "error") | "- **Rule:** `\(.ruleId)`\n  - **Description:** \(.message.text)\n  - **File:** `\(.locations[0].physicalLocation.artifactLocation.uri)`"' "${{ steps.semgrep.outputs.sarif-file }}")
 
-          if [ -z "$high_severity_findings" ]; then
-            echo "No high or critical severity vulnerabilities found."
-            exit 0
-          fi
-
-          # Construct the comment to be posted on the pull request.
-          comment_body="### Semgrep SAST Scan Results
+          high_severity_findings="VULNS!!"
+          comment_body="### Opengrep SAST Scan Results
 
           Found the following high or critical severity vulnerabilities:
 
