@@ -67,7 +67,7 @@ jobs:
         if: always() && steps.opengrep-base.outputs.SARIF_BASE_FILENAME && steps.opengrep-pr.outputs.SARIF_PR_FILENAME
         run: |
 
-          RESULTS=python3 baseline_code/opengrep_parse.py opengrep-base.sarif opengrep-pr.sarif
+          RESULTS=$(python3 baseline_code/opengrep_parse.py opengrep-base.sarif opengrep-pr.sarif)
           high_severity_findings="VULNS!!"
           comment_body="### Opengrep SAST Scan Results
 
