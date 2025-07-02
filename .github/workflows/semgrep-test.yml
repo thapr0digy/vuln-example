@@ -31,8 +31,8 @@ jobs:
         id: opengrep-base
         run: |
           echo $PWD
-          /home/runner/.opengrep/cli/v1.4.2/opengrep scan --config "p/default" --sarif-output=opengrep-base.sarif baseline_code
-          echo "SARIF_BASE_FILENAME=opengrep-base.sarif" >> "$GITHUB_OUTPUT"
+          /home/runner/.opengrep/cli/v1.4.2/opengrep scan --config "p/default" --json-output=opengrep-base.json baseline_code
+          echo "SARIF_BASE_FILENAME=opengrep-base.json" >> "$GITHUB_OUTPUT"
 
       - name: Checkout PR head
         uses: actions/checkout@v4
@@ -44,8 +44,8 @@ jobs:
         id: opengrep-pr
         run: |
           echo $PWD
-          /home/runner/.opengrep/cli/v1.4.2/opengrep scan --config "p/default" --sarif-output=opengrep-pr.sarif pr_code
-          echo "SARIF_PR_FILENAME=opengrep-pr.sarif" >> "$GITHUB_OUTPUT"
+          /home/runner/.opengrep/cli/v1.4.2/opengrep scan --config "p/default" --json-output=opengrep-pr.json pr_code
+          echo "SARIF_PR_FILENAME=opengrep-pr.json" >> "$GITHUB_OUTPUT"
 
       - name: Upload sarif files as artifacts
         uses: actions/upload-artifact@v4
