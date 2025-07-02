@@ -66,7 +66,6 @@ jobs:
         # This step will only run if the Semgrep scan produced a SARIF file.
         if: always() && steps.opengrep-base.outputs.SARIF_BASE_FILENAME && steps.opengrep-pr.outputs.SARIF_PR_FILENAME
         run: |
-
           RESULTS=$(python3 baseline_code/opengrep_parse.py opengrep-base.sarif opengrep-pr.sarif)
           high_severity_findings="VULNS!!"
           comment_body="### Opengrep SAST Scan Results
@@ -77,8 +76,7 @@ jobs:
           ${RESULTS}"
 
           # Use the GitHub CLI to post the comment.
-          # The gh command is pre-installed on GitHub-hosted runners.
-          gh pr comment "${{ github.event.pull_request.number }}" --body "$comment_body"
+          gh pr comment "${{ github.event.pull_request.number }}" --body "${comment_body}"
         env:
           # The GITHUB_TOKEN is required to use the GitHub CLI.
           GITHUB_TOKEN: ${{ secrets.VULN_TOKEN }}
