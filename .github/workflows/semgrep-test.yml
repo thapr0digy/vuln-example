@@ -30,7 +30,8 @@ jobs:
       - name: Run Opengrep Base Scan
         id: opengrep-base
         run: |
-          /home/runner/.opengrep/cli/v1.4.2/opengrep scan --config "p/default" --sarif-output=opengrep-base.sarif
+          echo $PWD
+          /home/runner/.opengrep/cli/v1.4.2/opengrep scan --config "p/default" --sarif-output=opengrep-base.sarif baseline_code
           echo "SARIF_BASE_FILENAME=opengrep-base.sarif" >> "$GITHUB_OUTPUT"
 
       - name: Checkout PR head
@@ -42,7 +43,8 @@ jobs:
       - name: Run Opengrep PR Scan
         id: opengrep-pr
         run: |
-          /home/runner/.opengrep/cli/v1.4.2/opengrep scan --config "p/default" --sarif-output=opengrep-pr.sarif
+          echo $PWD
+          /home/runner/.opengrep/cli/v1.4.2/opengrep scan --config "p/default" --sarif-output=opengrep-pr.sarif pr_code
           echo "SARIF_PR_FILENAME=opengrep-pr.sarif" >> "$GITHUB_OUTPUT"
 
       - name: Upload sarif files as artifacts
