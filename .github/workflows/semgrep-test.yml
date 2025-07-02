@@ -31,8 +31,8 @@ jobs:
         id: opengrep-base
         run: |
           echo $PWD
-          /home/runner/.opengrep/cli/v1.4.2/opengrep scan --config "p/default" --json-output=opengrep-base.json baseline_code
-          echo "SARIF_BASE_FILENAME=opengrep-base.json" >> "$GITHUB_OUTPUT"
+          /home/runner/.opengrep/cli/v1.4.2/opengrep scan --config "p/default" --sarif-output=opengrep-base.sarif baseline_code
+          echo "SARIF_BASE_FILENAME=opengrep-base.sarif" >> "$GITHUB_OUTPUT"
 
       - name: Checkout PR head
         uses: actions/checkout@v4
@@ -44,16 +44,16 @@ jobs:
         id: opengrep-pr
         run: |
           echo $PWD
-          /home/runner/.opengrep/cli/v1.4.2/opengrep scan --config "p/default" --json-output=opengrep-pr.json pr_code
-          echo "SARIF_PR_FILENAME=opengrep-pr.json" >> "$GITHUB_OUTPUT"
+          /home/runner/.opengrep/cli/v1.4.2/opengrep scan --config "p/default" --sarif-output=opengrep-pr.sarif pr_code
+          echo "SARIF_PR_FILENAME=opengrep-pr.sarif" >> "$GITHUB_OUTPUT"
 
       - name: Upload sarif files as artifacts
         uses: actions/upload-artifact@v4
         with:
           name: opengrep-sarifs
           path: |
-            ./opengrep-base.json
-            ./opengrep-pr.json
+            ./opengrep-base.sarif
+            ./opengrep-pr.sarif
 
       # This step reads the SARIF file, filters for high and critical vulnerabilities,
       # and then formats and posts a comment to the pull request.
@@ -62,12 +62,14 @@ jobs:
         if: always() && steps.opengrep-base.outputs.SARIF_BASE_FILENAME && steps.opengrep-pr.outputs.SARIF_PR_FILENAME
         run: |
 
+          RESULTS=python3 baseline_code/opengrep_parse.py opengrep-base.sarif opengrep-pr.sarif
           high_severity_findings="VULNS!!"
           comment_body="### Opengrep SAST Scan Results
 
           Found the following high or critical severity vulnerabilities:
 
-          ${high_severity_findings}"
+          ${high_severity_findings}
+          ${RESULTS}"
 
           # Use the GitHub CLI to post the comment.
           # The gh command is pre-installed on GitHub-hosted runners.
