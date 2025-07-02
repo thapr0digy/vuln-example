@@ -101,7 +101,7 @@ func test_rce(userStr string) {
 	fmt.Printf("Command output:\n%s\n", out.String())
 }
 
-func VULN_RCE(userStr string) {
+func VULN_RCE10(userStr string) {
 	cmd := exec.Command(userStr)
 	var out bytes.Buffer
 	cmd.Stdout = &out
