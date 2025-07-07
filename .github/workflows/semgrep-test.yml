@@ -31,10 +31,13 @@ jobs:
         with:
           ref: ${{ github.head_ref }} # The PR's branch
           path: pr_code
+          fetch-depth: 0
 
       - name: Run Opengrep PR Scan
         id: opengrep-pr
         run: |
+          echo "PWD: $PWD"
+          ls -alF
           /home/runner/.opengrep/cli/latest/opengrep scan --config "p/default" --sarif-output=pr.sarif pr_code
           echo "SARIF_PR_FILENAME=pr.sarif" >> "$GITHUB_OUTPUT"
 
@@ -48,10 +51,7 @@ jobs:
       - name: Get diff for passing to parser
         run: |
           cd pr_code
-          git diff > ../pr.diff
-          cd ..
-          echo "PR Diff: "
-          cat pr.diff
+          git diff origin/${{ github.base_ref }} > ../pr.diff
 
       # This step reads the SARIF file, filters for high and critical vulnerabilities,
       # and then formats and posts a comment to the pull request.
@@ -59,7 +59,7 @@ jobs:
         # This step will only run if the Semgrep scan produced a SARIF file.
         if: always() && steps.opengrep-pr.outputs.SARIF_PR_FILENAME
         run: |
-          RESULTS=$(python3 pr_parse.py pr.sarif pr.diff)
+          RESULTS=$(python3 pr_code/pr_parse.py pr.sarif pr.diff)
           high_severity_findings="VULNS!!"
           comment_body="### Opengrep SAST Scan Results
 
