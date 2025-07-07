@@ -35,7 +35,7 @@ jobs:
       - name: Run Opengrep PR Scan
         id: opengrep-pr
         run: |
-          /home/runner/.opengrep/cli/v1.4.2/opengrep scan --config "p/default" --sarif-output=pr.sarif pr_code
+          /home/runner/.opengrep/cli/latest/opengrep scan --config "p/default" --sarif-output=pr.sarif pr_code
           echo "SARIF_PR_FILENAME=pr.sarif" >> "$GITHUB_OUTPUT"
 
       - name: Upload sarif files as artifacts
