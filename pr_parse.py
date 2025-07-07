@@ -17,9 +17,9 @@ def parse_git_diff_lines(diff_output: str) -> Dict[str, Set[int]]:
     # Regex to capture hunk header @@ -old_start,old_count +new_start,new_count @@
     hunk_header_re = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+),(\d+)? @@")
 
+    current_line_in_hunk = None
     for line in diff_output.splitlines():
         file_match = file_header_re.match(line)
-        current_line_in_hunk = None
         if file_match:
             current_file = file_match.group(1)
             changed_lines_per_file[current_file] = set()

@@ -100,3 +100,16 @@ func no_match(w http.ResponseWriter, req *http.Request) {
 	}
 	tmpl.Execute(w, user1)
 }
+
+func test_rce2(userStr string) {
+	cmd := exec.Command(userStr)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	// Run the command
+	err := cmd.Run()
+	if err != nil {
+		log.Fatalf("Command failed with error: %v", err)
+	}
+	// Print the captured output
+	fmt.Printf("Command output:\n%s\n", out.String())
+}
