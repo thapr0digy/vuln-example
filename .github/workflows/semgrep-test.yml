@@ -60,12 +60,8 @@ jobs:
         if: always() && steps.opengrep-pr.outputs.SARIF_PR_FILENAME && steps.diff-action.outputs.DIFF_PR_FILENAME
         run: |
           RESULTS=$(python3 pr_code/pr_parse.py pr.sarif pr.diff)
-          high_severity_findings="VULNS!!"
           comment_body="### Opengrep SAST Scan Results
 
-          Found the following high or critical severity vulnerabilities:
-
-          ${high_severity_findings}
           ${RESULTS}"
 
           # Use the GitHub CLI to post the comment.
