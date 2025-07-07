@@ -49,6 +49,7 @@ jobs:
         run: |
           cd pr_code
           git diff > ../pr.diff
+          cd ..
           echo "PR Diff: "
           cat pr.diff
 
