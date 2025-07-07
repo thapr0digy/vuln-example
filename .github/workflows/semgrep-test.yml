@@ -16,12 +16,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout base branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.base_ref }} # The branch the PR is targeting
-          path: baseline_code
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -32,13 +26,6 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/opengrep/opengrep/main/install.sh | bash
           export PATH=$HOME/.local/bin:$PATH
 
-      - name: Run Opengrep Base Scan
-        id: opengrep-base
-        run: |
-          echo $PWD
-          /home/runner/.opengrep/cli/v1.4.2/opengrep scan --config "p/default" --sarif-output=base.sarif baseline_code
-          echo "SARIF_BASE_FILENAME=base.sarif" >> "$GITHUB_OUTPUT"
-
       - name: Checkout PR head
         uses: actions/checkout@v4
         with:
@@ -48,7 +35,6 @@ jobs:
       - name: Run Opengrep PR Scan
         id: opengrep-pr
         run: |
-          echo $PWD
           /home/runner/.opengrep/cli/v1.4.2/opengrep scan --config "p/default" --sarif-output=pr.sarif pr_code
           echo "SARIF_PR_FILENAME=pr.sarif" >> "$GITHUB_OUTPUT"
 
@@ -57,16 +43,21 @@ jobs:
         with:
           name: opengrep-sarifs
           path: |
-            ./base.sarif
             ./pr.sarif
+
+      - name: Get diff for passing to parser
+        run: |
+          git diff > pr.diff
+          echo "PR Diff: "
+          cat pr.diff
 
       # This step reads the SARIF file, filters for high and critical vulnerabilities,
       # and then formats and posts a comment to the pull request.
       - name: Parse Semgrep SARIF and Comment on PR
         # This step will only run if the Semgrep scan produced a SARIF file.
-        if: always() && steps.opengrep-base.outputs.SARIF_BASE_FILENAME && steps.opengrep-pr.outputs.SARIF_PR_FILENAME
+        if: always() && steps.opengrep-pr.outputs.SARIF_PR_FILENAME
         run: |
-          RESULTS=$(python3 baseline_code/opengrep_parse.py base.sarif pr.sarif)
+          RESULTS=$(python3 pr_parse.py pr.sarif pr.diff)
           high_severity_findings="VULNS!!"
           comment_body="### Opengrep SAST Scan Results
 
