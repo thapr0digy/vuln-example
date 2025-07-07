@@ -1,7 +1,6 @@
 import json
 import sys
 import re
-from git import Repo, Diff
 from typing import Dict, List, Set, Tuple
 
 
