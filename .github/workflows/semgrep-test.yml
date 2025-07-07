@@ -47,7 +47,8 @@ jobs:
 
       - name: Get diff for passing to parser
         run: |
-          git diff > pr.diff
+          cd pr_code
+          git diff > ../pr.diff
           echo "PR Diff: "
           cat pr.diff
 
