@@ -198,6 +198,7 @@ def main():
         print(f"  Location: {location_uri}:{start_line}")
         print(f"  Message: {message}")
         print("")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

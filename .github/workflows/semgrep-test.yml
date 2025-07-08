@@ -57,18 +57,22 @@ jobs:
             pr.sarif
             pr.diff
 
-      - name: Parse Semgrep SARIF and Comment on PR
+      - name: Parse Semgrep SARIF
+        id: findings-filter
         if: always() && steps.opengrep-pr.outputs.SARIF_PR_FILENAME && steps.diff-action.outputs.DIFF_PR_FILENAME
         run: |
           cd pr_code
           uv sync 
           RESULTS=$(uv run pr_parse.py ../pr.sarif ../pr.diff)
           comment_body="### Opengrep SAST Scan Results
-
           ${RESULTS}"
+          echo "comment_body=${comment_body}" >> "$GITHUB_OUTPUT"
 
+      - name: Update PR comment
+        if: always() 
+        run: |
           # Use the GitHub CLI to post the comment.
-          gh pr comment "${{ github.event.pull_request.number }}" --body "${comment_body}"
+          gh pr comment "${{ github.event.pull_request.number }}" --body "${{ steps.findings-filter.outputs.comment_body }}"
         env:
           # The GITHUB_TOKEN is required to use the GitHub CLI.
           GITHUB_TOKEN: ${{ secrets.VULN_TOKEN }}
