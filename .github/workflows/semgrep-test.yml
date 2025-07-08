@@ -67,7 +67,8 @@ jobs:
           ls -alF
           uv sync 
           echo "Finished syncing. Running parser"
-          uv run pr_parse.py ../pr.sarif ../pr.diff >> results.txt
+          source .venv/bin/activate
+          python3 pr_parse.py ../pr.sarif ../pr.diff
           RESULTS=$(cat results.txt)
           comment_body="### Opengrep SAST Scan Results
 
