@@ -60,7 +60,11 @@ jobs:
       - name: Parse Semgrep SARIF and Comment on PR
         if: always() && steps.opengrep-pr.outputs.SARIF_PR_FILENAME && steps.diff-action.outputs.DIFF_PR_FILENAME
         run: |
+          echo -n "Before: "
+          ls -alF
           cd pr_code
+          echo -n "After: "
+          ls -alF
           uv sync 
           echo "Finished syncing. Running parser"
           uv run pr_parse.py ../pr.sarif ../pr.diff >> results.txt
