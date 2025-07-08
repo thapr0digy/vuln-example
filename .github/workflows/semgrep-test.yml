@@ -62,7 +62,7 @@ jobs:
         if: always() && steps.opengrep-pr.outputs.SARIF_PR_FILENAME && steps.diff-action.outputs.DIFF_PR_FILENAME
         run: |
           cd pr_code
-          uv sync --locked
+          uv sync 
           RESULTS=$(uv run pr_parse.py pr.sarif pr.diff)
           comment_body="### Opengrep SAST Scan Results
 
