@@ -64,7 +64,7 @@ jobs:
       - name: Parse Semgrep SARIF and Comment on PR
         if: always() && steps.opengrep-pr.outputs.SARIF_PR_FILENAME && steps.diff-action.outputs.DIFF_PR_FILENAME
         run: |
-          uv sync --locked 
+          uv sync --locked --project pr_code 
           RESULTS=$(uv run pr_code/pr_parse.py pr.sarif pr.diff)
           comment_body="### Opengrep SAST Scan Results
 
