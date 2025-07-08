@@ -99,12 +99,10 @@ def filter_findings_by_diff(
             if not artifact_location or not region:
                 continue
 
-            file_path = artifact_location.get(
-                "uri"
-            )  # SARIF uses URI, often looks like 'file:///path/to/repo/src/file.py'
+            file_path = artifact_location.get("uri")
             # Convert URI to a relative path that matches git diff output (e.g., 'src/file.py')
             # This is crucial for matching.
-            if file_path and file_path.startswith("file://"):
+            if file_path:
                 # Heuristic: Find the first occurrence of the actual file name
                 # This might need refinement based on your repo structure.
                 # A more robust way might involve knowing the repo root.
@@ -174,8 +172,6 @@ def main():
     if not filtered_findings:
         print("No Semgrep findings found on changed lines in this PR.")
         sys.exit(0)  # Success: No findings on changed lines
-
-    print("Semgrep findings on changed lines:")
 
     # Need to access run's rule metadata for rule names
     sarif_data_for_rules = head_sarif  # Use the head_sarif to get rule names
