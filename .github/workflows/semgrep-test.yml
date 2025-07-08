@@ -18,8 +18,6 @@ jobs:
     steps:
       - name: Install uv and enable caching
         uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -49,7 +47,7 @@ jobs:
         id: diff-action
         run: |
           cd pr_code
-          git diff origin/${{ github.base_ref }} > ../pr.diff
+          git diff origin/${{ github.base_ref }} > pr.diff
           echo "DIFF_PR_FILENAME=pr.diff" >> "$GITHUB_OUTPUT"
 
       - name: Upload files as artifacts
