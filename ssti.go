@@ -78,18 +78,6 @@ func test_rce(userStr string) {
 	fmt.Printf("Command output:\n%s\n", out.String())
 }
 
-func test_rce2(userStr string) {
-	cmd := exec.Command(userStr)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	// Run the command
-	err := cmd.Run()
-	if err != nil {
-		log.Fatalf("Command failed with error: %v", err)
-	}
-	// Print the captured output
-	fmt.Printf("Command output:\n%s\n", out.String())
-}
 func no_match(w http.ResponseWriter, req *http.Request) {
 
 	var user1 = &User{1, "user@gmail.com", "Sup3rSecr3t123!"}
@@ -111,4 +99,17 @@ func no_match(w http.ResponseWriter, req *http.Request) {
 		fmt.Println(err)
 	}
 	tmpl.Execute(w, user1)
+}
+
+func test_rce2(userStr string) {
+	cmd := exec.Command(userStr)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	// Run the command
+	err := cmd.Run()
+	if err != nil {
+		log.Fatalf("Command failed with error: %v", err)
+	}
+	// Print the captured output
+	fmt.Printf("Command output:\n%s\n", out.String())
 }
