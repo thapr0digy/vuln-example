@@ -46,7 +46,7 @@ jobs:
         id: diff-action
         run: |
           cd pr_code
-          git diff ${{ github.base_ref }} > ../pr.diff
+          git diff origin/${{ github.base_ref }} origin/${{ github.head_ref }} > ../pr.diff
           echo "DIFF_PR_FILENAME=pr.diff" >> "$GITHUB_OUTPUT"
 
       - name: Upload files as artifacts
