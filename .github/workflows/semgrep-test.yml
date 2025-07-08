@@ -39,14 +39,12 @@ jobs:
       - name: Run Opengrep PR Scan
         id: opengrep-pr
         run: |
-          cd pr_code
-          /home/runner/.opengrep/cli/latest/opengrep scan --config "p/default" --sarif-output=pr.sarif .
+          /home/runner/.opengrep/cli/latest/opengrep scan --config "p/default" --sarif-output=pr.sarif pr_code
           echo "SARIF_PR_FILENAME=pr.sarif" >> "$GITHUB_OUTPUT"
 
       - name: Get diff for passing to parser
         id: diff-action
         run: |
-          cd pr_code
           git diff origin/${{ github.base_ref }} > pr.diff
           echo "DIFF_PR_FILENAME=pr.diff" >> "$GITHUB_OUTPUT"
 
@@ -55,15 +53,15 @@ jobs:
         with:
           name: opengrep-sarifs
           path: |
-            ./pr.sarif
-            ./pr.diff
+            pr.sarif
+            pr.diff
 
       - name: Parse Semgrep SARIF and Comment on PR
         if: always() && steps.opengrep-pr.outputs.SARIF_PR_FILENAME && steps.diff-action.outputs.DIFF_PR_FILENAME
         run: |
           cd pr_code
           uv sync 
-          RESULTS=$(uv run pr_parse.py pr.sarif pr.diff)
+          RESULTS=$(uv run pr_parse.py ../pr.sarif ../pr.diff)
           comment_body="### Opengrep SAST Scan Results
 
           ${RESULTS}"
