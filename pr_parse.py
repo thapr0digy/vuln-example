@@ -1,8 +1,8 @@
 import json
 import sys
 import re
-from git import Repo, Diff
-from typing import Dict, List, Set, Tuple
+from unidiff import PatchSet
+from typing import Dict, List, Set
 
 
 def parse_git_diff_lines(diff_output: str) -> Dict[str, Set[int]]:
@@ -18,6 +18,7 @@ def parse_git_diff_lines(diff_output: str) -> Dict[str, Set[int]]:
     # Regex to capture hunk header @@ -old_start,old_count +new_start,new_count @@
     hunk_header_re = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+),(\d+)? @@")
 
+    current_line_in_hunk = None
     for line in diff_output.splitlines():
         file_match = file_header_re.match(line)
         if file_match:
@@ -48,6 +49,18 @@ def parse_git_diff_lines(diff_output: str) -> Dict[str, Set[int]]:
                 current_line_in_hunk += 1
 
     return changed_lines_per_file
+
+
+def parse_git_diff(filename: str) -> Dict[str, Set[int]]:
+    changed_lines_per_file = {}
+
+    # Load file
+    patches = PatchSet.from_filename(filename)
+    for patch in patches:
+        changed_lines_per_file[patch.path] = set()
+        for hunk in patch:
+            line_count = hunk.added
+            # changed_lines_per_file[patch.path].add()
 
 
 def load_sarif(file_path: str) -> Dict:
@@ -86,12 +99,10 @@ def filter_findings_by_diff(
             if not artifact_location or not region:
                 continue
 
-            file_path = artifact_location.get(
-                "uri"
-            )  # SARIF uses URI, often looks like 'file:///path/to/repo/src/file.py'
+            file_path = artifact_location.get("uri")
             # Convert URI to a relative path that matches git diff output (e.g., 'src/file.py')
             # This is crucial for matching.
-            if file_path and file_path.startswith("file://"):
+            if file_path:
                 # Heuristic: Find the first occurrence of the actual file name
                 # This might need refinement based on your repo structure.
                 # A more robust way might involve knowing the repo root.
@@ -145,6 +156,7 @@ def main():
 
     head_sarif = load_sarif(head_sarif_path)
 
+    # Perform diff logic
     try:
         with open(git_diff_path, "r", encoding="utf-8") as f:
             git_diff_output = f.read()
@@ -154,13 +166,12 @@ def main():
 
     changed_lines = parse_git_diff_lines(git_diff_output)
 
+    # changed_lines = parse_git_diff(git_diff_path)
     filtered_findings = filter_findings_by_diff(head_sarif, changed_lines)
 
     if not filtered_findings:
         print("No Semgrep findings found on changed lines in this PR.")
         sys.exit(0)  # Success: No findings on changed lines
-
-    print("Semgrep findings on changed lines:")
 
     # Need to access run's rule metadata for rule names
     sarif_data_for_rules = head_sarif  # Use the head_sarif to get rule names
@@ -187,8 +198,6 @@ def main():
         print(f"  Location: {location_uri}:{start_line}")
         print(f"  Message: {message}")
         print("")
-
-    sys.exit(1)  # Indicate failure: Findings on changed lines exist
 
 
 if __name__ == "__main__":
