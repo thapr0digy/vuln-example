@@ -62,6 +62,7 @@ jobs:
         run: |
           cd pr_code
           uv sync 
+          echo "Finished syncing. Running parser"
           uv run pr_parse.py ../pr.sarif ../pr.diff >> results.txt
           RESULTS=$(cat results.txt)
           comment_body="### Opengrep SAST Scan Results
