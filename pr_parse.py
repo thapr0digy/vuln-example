@@ -1,6 +1,7 @@
 import json
 import sys
 import re
+from unidiff import PatchSet
 from typing import Dict, List, Set
 
 
@@ -48,6 +49,18 @@ def parse_git_diff_lines(diff_output: str) -> Dict[str, Set[int]]:
                 current_line_in_hunk += 1
 
     return changed_lines_per_file
+
+
+def parse_git_diff(filename: str) -> Dict[str, Set[int]]:
+    changed_lines_per_file = {}
+
+    # Load file
+    patches = PatchSet.from_filename(filename)
+    for patch in patches:
+        changed_lines_per_file[patch.path] = set()
+        for hunk in patch:
+            line_count = hunk.added
+            # changed_lines_per_file[patch.path].add()
 
 
 def load_sarif(file_path: str) -> Dict:
@@ -145,6 +158,7 @@ def main():
 
     head_sarif = load_sarif(head_sarif_path)
 
+    # Perform diff logic
     try:
         with open(git_diff_path, "r", encoding="utf-8") as f:
             git_diff_output = f.read()
@@ -154,6 +168,7 @@ def main():
 
     changed_lines = parse_git_diff_lines(git_diff_output)
 
+    # changed_lines = parse_git_diff(git_diff_path)
     filtered_findings = filter_findings_by_diff(head_sarif, changed_lines)
 
     if not filtered_findings:

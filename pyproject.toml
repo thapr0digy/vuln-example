@@ -7,4 +7,5 @@ requires-python = ">=3.13"
 dependencies = [
     "gitpython>=3.1.44",
     "tree-sitter-language-pack>=0.8.0",
+    "unidiff>=0.7.5",
 ]
