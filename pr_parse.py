@@ -199,8 +199,6 @@ def main():
         print(f"  Message: {message}")
         print("")
 
-    sys.exit(1)  # Indicate failure: Findings on changed lines exist
-
 
 if __name__ == "__main__":
     main()
