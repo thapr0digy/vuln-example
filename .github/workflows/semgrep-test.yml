@@ -45,6 +45,7 @@ jobs:
       - name: Get diff for passing to parser
         id: diff-action
         run: |
+          cd pr_code
           git diff origin/${{ github.base_ref }} > pr.diff
           echo "DIFF_PR_FILENAME=pr.diff" >> "$GITHUB_OUTPUT"
 
