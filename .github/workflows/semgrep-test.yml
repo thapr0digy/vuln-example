@@ -16,10 +16,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Install uv and enable caching
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13' 
+          python-version: '3.13'
 
       - name: Install Opengrep
         run: |
@@ -59,7 +64,8 @@ jobs:
       - name: Parse Semgrep SARIF and Comment on PR
         if: always() && steps.opengrep-pr.outputs.SARIF_PR_FILENAME && steps.diff-action.outputs.DIFF_PR_FILENAME
         run: |
-          RESULTS=$(python3 pr_code/pr_parse.py pr.sarif pr.diff)
+          uv sync --locked 
+          RESULTS=$(uv run pr_code/pr_parse.py pr.sarif pr.diff)
           comment_body="### Opengrep SAST Scan Results
 
           ${RESULTS}"
