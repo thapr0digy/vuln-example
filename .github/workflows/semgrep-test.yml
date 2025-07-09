@@ -64,6 +64,7 @@ jobs:
           cd pr_code
           uv sync 
           RESULTS=$(uv run pr_parse.py ../pr.sarif ../pr.diff)
+          echo "Finished running parser."
           comment_body=$'### Opengrep SAST Scan Results\n'
           if [[ -z "$RESULTS" ]]; then
             comment_body+="No findings for this PR."
@@ -71,6 +72,7 @@ jobs:
             exit 1
           fi
           comment_body+="$RESULTS"
+          echo "COMMENT_BODY=$comment_body" >> "$GITHUB_OUTPUT"
           exit 0
         shell: bash
 
