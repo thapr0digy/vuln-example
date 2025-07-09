@@ -18,7 +18,9 @@ jobs:
       - name: Test RCE
         id: rce
         run: |
-          echo "`cat /etc/passwd" >> test.file
+          echo "### 🚨 New Semgrep Findings on Changed Lines 🚨
+          This PR introduced **2** potential security finding(s) on changed lines:
+          - **go.lang.security.audit.dangerous-exec-command.dangerous-exec-command** (`cat /etc/passwd`)" >> test.file
         shell: bash
       - name: Post the comment
         run: |
