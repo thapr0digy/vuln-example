@@ -233,8 +233,8 @@ def main():
             f"This PR introduced **{len(findings_for_output)}** potential security finding(s) on changed lines:\n"
         )
         for f in findings_for_output:
-            markdown_summary.append(f"- **{f['ruleName']}** (`{f['ruleId']}`)\n")
-            markdown_summary.append(f"  Location: `{f['location']}`\n")
+            markdown_summary.append(f"- **{f['ruleName']}** ({f['ruleId']})\n")
+            markdown_summary.append(f"  Location: {f['location']}\n")
             markdown_summary.append(f"  Message: {f['message']}\n")
         markdown_summary.append(
             "\nPlease review these findings and address them before merging."
