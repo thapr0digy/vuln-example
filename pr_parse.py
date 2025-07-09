@@ -1,5 +1,6 @@
 import json
 import sys
+import os
 import re
 from unidiff import PatchSet
 from typing import Dict, List, Set
@@ -169,11 +170,29 @@ def main():
     # changed_lines = parse_git_diff(git_diff_path)
     filtered_findings = filter_findings_by_diff(head_sarif, changed_lines)
 
+    # Prepare output for GitHub Actions
+    output_data = {}
+
     if not filtered_findings:
         print("No Semgrep findings found on changed lines in this PR.")
+        output_data["status"] = "success"
+        output_data["findings_summary"] = (
+            "No new Semgrep findings found on changed lines in this PR."
+        )
+        output_data["findings_count"] = 0
+
+        # Write outputs to GITHUB_OUTPUT
+        with open(os.environ["GITHUB_OUTPUT"], "a") as gh_output:
+            gh_output.write(f"status={output_data['status']}\n")
+            gh_output.write(f"findings_count={output_data['findings_count']}\n")
+            # For multi-line output, use a delimiter
+            gh_output.write("findings_summary<<EOF\n")
+            gh_output.write(output_data["findings_summary"] + "\n")
+            gh_output.write("EOF\n")
         sys.exit(0)  # Success: No findings on changed lines
 
     # Need to access run's rule metadata for rule names
+    findings_for_output = []
     sarif_data_for_rules = head_sarif  # Use the head_sarif to get rule names
 
     for finding in filtered_findings:
@@ -193,6 +212,43 @@ def main():
         )
 
         rule_name = get_rule_name(sarif_data_for_rules, rule_id)
+        console_output = f"- Rule: {rule_name} ({rule_id})\n  Location: {location_uri}:{start_line}\n  Message: {message}\n"
+        print(console_output)  # Print to console for immediate visibility
+
+        findings_for_output.append(
+            {
+                "ruleName": rule_name,
+                "ruleId": rule_id,
+                "location": f"{location_uri}:{start_line}",
+                "message": message,
+            }
+        )
+        output_data["status"] = "failure"
+        output_data["findings_count"] = len(findings_for_output)
+
+        # Create a markdown summary for the PR comment
+        markdown_summary = []
+        markdown_summary.append("### 🚨 New Semgrep Findings on Changed Lines 🚨\n")
+        markdown_summary.append(
+            f"This PR introduced **{len(findings_for_output)}** potential security finding(s) on changed lines:\n"
+        )
+        for f in findings_for_output:
+            markdown_summary.append(f"- **{f['ruleName']}** (`{f['ruleId']}`)\n")
+            markdown_summary.append(f"  Location: `{f['location']}`\n")
+            markdown_summary.append(f"  Message: {f['message']}\n")
+        markdown_summary.append(
+            "\nPlease review these findings and address them before merging."
+        )
+
+        output_data["findings_summary"] = "\n".join(markdown_summary)
+
+        # Write outputs to GITHUB_OUTPUT
+        with open(os.environ["GITHUB_OUTPUT"], "a") as gh_output:
+            gh_output.write(f"status={output_data['status']}\n")
+            gh_output.write(f"findings_count={output_data['findings_count']}\n")
+            gh_output.write("findings_summary<<EOF\n")
+            gh_output.write(output_data["findings_summary"] + "\n")
+            gh_output.write("EOF\n")
 
         print(f"- Rule: {rule_name} ({rule_id})")
         print(f"  Location: {location_uri}:{start_line}")

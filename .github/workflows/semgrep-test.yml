@@ -63,24 +63,24 @@ jobs:
         run: |
           cd pr_code
           uv sync 
-          RESULTS=$(uv run pr_parse.py ../pr.sarif ../pr.diff)
+          uv run pr_parse.py ../pr.sarif ../pr.diff
           echo "Finished running parser."
-          comment_body="### Opengrep SAST Scan Results"
-          if [[ -z "$RESULTS" ]]; then
-            comment_body+="No findings for this PR."
-            echo COMMENT_BODY=$comment_body >> $GITHUB_OUTPUT
-            exit 1
-          fi
-          comment_body+="$RESULTS"
-          echo COMMENT_BODY=$comment_body >> $GITHUB_OUTPUT
-          exit 0
+          #comment_body="### Opengrep SAST Scan Results"
+          #if [[ -z "$RESULTS" ]]; then
+          #  comment_body+="No findings for this PR."
+          #  echo COMMENT_BODY=$comment_body >> $GITHUB_OUTPUT
+          #  exit 1
+          #fi
+          #comment_body+="$RESULTS"
+          #echo COMMENT_BODY=$comment_body >> $GITHUB_OUTPUT
+          #exit 0
         shell: bash
 
       - name: Update PR comment
         if: always() 
         run: |
           # Use the GitHub CLI to post the comment.
-          gh pr comment "${{ github.event.pull_request.number }}" --body "${{ steps.findings-filter.outputs.COMMENT_BODY }}"
+          gh pr comment "${{ github.event.pull_request.number }}" --body "${{ steps.findings-filter.outputs.findings_summary }}"
         env:
           # The GITHUB_TOKEN is required to use the GitHub CLI.
           GITHUB_TOKEN: ${{ secrets.VULN_TOKEN }}
