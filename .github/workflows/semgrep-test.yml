@@ -68,11 +68,11 @@ jobs:
           comment_body=$'### Opengrep SAST Scan Results\n'
           if [[ -z "$RESULTS" ]]; then
             comment_body+="No findings for this PR."
-            echo "COMMENT_BODY=${comment_body}" >> "$GITHUB_OUTPUT"
+            echo COMMENT_BODY=$comment_body >> $GITHUB_OUTPUT
             exit 1
           fi
           comment_body+="$RESULTS"
-          echo "COMMENT_BODY=${comment_body}" >> "$GITHUB_OUTPUT"
+          echo COMMENT_BODY=$comment_body >> $GITHUB_OUTPUT
           exit 0
         shell: bash
 
