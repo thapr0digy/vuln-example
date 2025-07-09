@@ -18,7 +18,7 @@ jobs:
       - name: Test RCE
         id: rce
         run: |
-          echo "RCE_PAYLOAD=`cat /etc/passwd`" >> $GITHUB_OUTPUT
+          echo "RCE_PAYLOAD=\`cat /etc/passwd\`" >> $GITHUB_OUTPUT
       - name: Post the comment
         run: |
           gh pr comment "${{ github.event.pull_request.number }}" --body "${{ steps.rce.outputs.RCE_PAYLOAD }}"
