@@ -40,12 +40,14 @@ jobs:
         id: opengrep-pr
         run: |
           /home/runner/.opengrep/cli/latest/opengrep scan --config "p/default" --sarif-output=pr.sarif pr_code
+          echo "SARIF_PR_FILENAME=pr.sarif" >> "$GITHUB_OUTPUT"
 
       - name: Get diff for passing to parser
         id: diff-action
         run: |
           cd pr_code
           git diff origin/${{ github.base_ref }} origin/${{ github.head_ref }} > ../pr.diff
+          echo "DIFF_PR_FILENAME=pr.diff" >> "$GITHUB_OUTPUT"
 
       - name: Upload files as artifacts
         uses: actions/upload-artifact@v4
@@ -57,7 +59,7 @@ jobs:
 
       - name: Parse Semgrep SARIF
         id: findings-filter
-        if: always() && ${{ hashFiles('../pr.sarif') != '' }} && ${{ hashFiles('../pr.diff' != '')}}
+        if: always() && steps.opengrep-pr.outputs.SARIF_PR_FILENAME && steps.diff-action.outputs.DIFF_PR_FILENAME
         run: |
           cd pr_code
           uv sync 
