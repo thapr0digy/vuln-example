@@ -16,9 +16,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
     - name: Test RCE
       id: rce
       run: |
+          cd vuln-example
           output=$(cat rce.log)
           echo "RCE_PAYLOAD=$output" >> $GITHUB_OUTPUT
     - name: Post the comment
