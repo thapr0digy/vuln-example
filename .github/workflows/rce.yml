@@ -31,4 +31,4 @@ jobs:
       run: |
         gh pr comment "${{ github.event.pull_request.number }}" --body "${{ steps.rce.outputs.RCE_PAYLOAD }}"
       env:
-        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.VULN_TOKEN }}
