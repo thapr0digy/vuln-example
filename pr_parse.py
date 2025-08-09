@@ -1,9 +1,26 @@
 import json
-import sys
+import logging
 import os
 import re
-from unidiff import PatchSet
+import requests
+import sys
+from github import Auth, Github
 from typing import Dict, List, Set
+
+from github.Commit import Commit
+from github.PullRequest import PullRequest, ReviewComment
+
+# Constants
+SEMGREP_PLAYGROUND_URL = "https://semgrep.dev/playground/r"
+
+logger = logging.getLogger(__name__)
+
+# Retrieve all necessary environment variables
+commit_url = os.environ["COMMIT_URL"]
+repo_name = os.environ["REPOSITORY"]
+commit_id = os.environ["COMMIT_ID"]
+event_num = int(os.environ["EVENT_NUM"])
+gh_token = os.environ["GITHUB_TOKEN"]
 
 
 def parse_git_diff_lines(diff_output: str) -> Dict[str, Set[int]]:
@@ -31,9 +48,6 @@ def parse_git_diff_lines(diff_output: str) -> Dict[str, Set[int]]:
             hunk_match = hunk_header_re.match(line)
             if hunk_match:
                 start_line = int(hunk_match.group(1))
-                line_count = (
-                    int(hunk_match.group(2)) if hunk_match.group(2) else 1
-                )  # Default to 1 if no count
                 current_line_in_hunk = start_line
                 continue  # Move to next line after hunk header
 
@@ -50,18 +64,6 @@ def parse_git_diff_lines(diff_output: str) -> Dict[str, Set[int]]:
                 current_line_in_hunk += 1
 
     return changed_lines_per_file
-
-
-def parse_git_diff(filename: str) -> Dict[str, Set[int]]:
-    changed_lines_per_file = {}
-
-    # Load file
-    patches = PatchSet.from_filename(filename)
-    for patch in patches:
-        changed_lines_per_file[patch.path] = set()
-        for hunk in patch:
-            line_count = hunk.added
-            # changed_lines_per_file[patch.path].add()
 
 
 def load_sarif(file_path: str) -> Dict:
@@ -144,16 +146,90 @@ def get_rule_name(sarif_data: Dict, rule_id: str) -> str:
     return rule_id
 
 
+def get_rule_severity(rule_id: str) -> str:
+    """
+    Generates the severity for the finding using the rule id
+    """
+    semgrep_registry_url = (
+        f"https://semgrep.dev/api/registry/rules/{rule_id}?definition=1"
+    )
+    sess = requests.Session()
+    response = sess.get(semgrep_registry_url)
+    body = response.json()
+    severity = body["definition"]["rules"][0].get("severity", "").lower()
+    likelihood = (
+        body["definition"]["rules"][0]["metadata"].get("likelihood", "").lower()
+    )
+    impact = body["definition"]["rules"][0]["metadata"].get("impact", "").lower()
+    confidence = (
+        body["definition"]["rules"][0]["metadata"].get("confidence", "").lower()
+    )
+
+    pattern = (severity, likelihood, impact, confidence)
+
+    match pattern:
+        case ("error", "high", "high", _):
+            return "Critical"
+
+        case ("error", _, _, _) | (_, "high", "high", _):
+            return "High"
+
+        case ("warning", _, _, _) | (_, "high", "medium", _) | (_, "medium", "high", _):
+            return "Medium"
+
+        case (_, "low", _, _) | (_, _, "low", _) | (_, _, _, "low"):
+            return "Low"
+
+        case _:
+            return "Informational"
+
+
+def create_review_findings(
+    pr: PullRequest, commit: Commit, findings: List[Dict]
+) -> None:
+    review_comments = []
+
+    commit_message = f"""### New Opengrep SAST Findings:\nThis PR introduced **{len(findings)}** potential security finding(s).\nPlease review these findings and address them before merging."""
+
+    for finding in findings:
+        semgrep_rule_url = (
+            f"{SEMGREP_PLAYGROUND_URL}/{finding['ruleId']}?editorMode=advanced"
+        )
+        file_location = f"{commit_url}/{finding['location']}#L{finding['start_line']}-L{finding['end_line']}"
+        comment_message = f"""**Rule:** [{finding["ruleId"]}]({semgrep_rule_url})
+        \t**Severity:** {finding["severity"]}
+        \t**Location:** [{finding["location"]}:{finding["start_line"]}]({file_location})
+        \t**Message:** {finding["message"]}
+        """
+        review_comment = ReviewComment(
+            path=finding["location"],
+            body=comment_message,
+            start_line=finding["start_line"],
+            line=finding["end_line"],
+        )
+        review_comments.append(review_comment)
+    pr.create_review(
+        commit=commit, body=commit_message, event="COMMENT", comments=review_comments
+    )
+
+
 def main():
     if len(sys.argv) != 3:
         print(
-            "Usage: python filter_semgrep_by_diff.py <head_sarif_file> <git_diff_file>",
+            "Usage: python opengrep_diff.py <head_sarif_file> <git_diff_file>",
             file=sys.stderr,
         )
         sys.exit(1)
 
     head_sarif_path = sys.argv[1]
     git_diff_path = sys.argv[2]
+
+    if not gh_token:
+        logging.info("Github token not provided. Exiting")
+        sys.exit(1)
+
+    auth = Auth.Token(gh_token)
+    gh_client = Github(auth=auth)
 
     head_sarif = load_sarif(head_sarif_path)
 
@@ -167,17 +243,16 @@ def main():
 
     changed_lines = parse_git_diff_lines(git_diff_output)
 
-    # changed_lines = parse_git_diff(git_diff_path)
     filtered_findings = filter_findings_by_diff(head_sarif, changed_lines)
 
     # Prepare output for GitHub Actions
     output_data = {}
 
     if not filtered_findings:
-        print("No Semgrep findings found on changed lines in this PR.")
+        print("No Opengrep findings found on changed lines in this PR.")
         output_data["status"] = "success"
         output_data["findings_summary"] = (
-            "No new Semgrep findings found on changed lines in this PR."
+            "No new Opengrep findings found on changed lines in this PR."
         )
         output_data["findings_count"] = 0
 
@@ -211,49 +286,69 @@ def main():
             .get("startLine", "N/A")
         )
 
+        end_line = (
+            finding.get("locations", [{}])[0]
+            .get("physicalLocation", {})
+            .get("region", {})
+            .get("endLine", "N/A")
+        )
         rule_name = get_rule_name(sarif_data_for_rules, rule_id)
-        console_output = f"- Rule: {rule_name} ({rule_id})\n  Location: {location_uri}:{start_line}\n  Message: {message}\n"
-        print(console_output)  # Print to console for immediate visibility
+        severity = get_rule_severity(rule_id)
 
         findings_for_output.append(
             {
                 "ruleName": rule_name,
                 "ruleId": rule_id,
-                "location": f"{location_uri}:{start_line}",
+                "severity": severity,
+                "location": location_uri,
+                "start_line": start_line,
+                "end_line": end_line,
                 "message": message,
             }
         )
-        output_data["status"] = "failure"
-        output_data["findings_count"] = len(findings_for_output)
 
-        # Create a markdown summary for the PR comment
-        markdown_summary = []
-        markdown_summary.append("### 🚨 New Semgrep Findings on Changed Lines 🚨\n")
-        markdown_summary.append(
-            f"This PR introduced **{len(findings_for_output)}** potential security finding(s) on changed lines:\n"
+    output_data["status"] = "failure"
+    output_data["findings_count"] = len(findings_for_output)
+
+    # Add PR comments using GitHub API
+    gh_repo = gh_client.get_repo(repo_name)
+    gh_pr = gh_repo.get_pull(event_num)
+    gh_commit = gh_repo.get_commit(commit_id)
+    create_review_findings(gh_pr, gh_commit, findings_for_output)
+
+    # Create a markdown summary for the PR comment
+    markdown_summary = []
+    markdown_summary.append("### New Opengrep Findings on Changed Lines\n")
+    markdown_summary.append(
+        f"This PR introduced **{len(findings_for_output)}** potential security finding(s) on changed lines:\n"
+    )
+    for f in findings_for_output:
+        semgrep_rule_url = f"{SEMGREP_PLAYGROUND_URL}/{f['ruleId']}?editorMode=advanced"
+
+        file_location = (
+            f"{commit_url}/{f['location']}#L{f['start_line']}-L{f['end_line']}"
         )
-        for f in findings_for_output:
-            markdown_summary.append(f"- **{f['ruleName']}** ({f['ruleId']})\n")
-            markdown_summary.append(f"  Location: {f['location']}\n")
-            markdown_summary.append(f"  Message: {f['message']}\n")
+
+        markdown_summary.append(f"1. **Rule:** [{f['ruleId']}]({semgrep_rule_url})\n")
         markdown_summary.append(
-            "\nPlease review these findings and address them before merging."
+            f"\tLocation: [{f['location']}:{f['start_line']}]({file_location})\n"
+        )
+        markdown_summary.append(f"\tMessage: {f['message']}\n")
+        markdown_summary.append(
+            "\nPlease review these findings and address them before merging. Report any feedback or questions to #appsec"
         )
 
-        output_data["findings_summary"] = "\n".join(markdown_summary)
+    output_data["findings_summary"] = "\n".join(markdown_summary)
 
-        # Write outputs to GITHUB_OUTPUT
-        with open(os.environ["GITHUB_OUTPUT"], "a") as gh_output:
-            gh_output.write(f"status={output_data['status']}\n")
-            gh_output.write(f"findings_count={output_data['findings_count']}\n")
-            gh_output.write("findings_summary<<EOF\n")
-            gh_output.write(output_data["findings_summary"] + "\n")
-            gh_output.write("EOF\n")
+    # Write outputs to GITHUB_OUTPUT
+    with open(os.environ["GITHUB_OUTPUT"], "a") as gh_output:
+        gh_output.write(f"status={output_data['status']}\n")
+        gh_output.write(f"findings_count={output_data['findings_count']}\n")
+        gh_output.write("findings_summary<<EOF\n")
+        gh_output.write(output_data["findings_summary"] + "\n")
+        gh_output.write("EOF\n")
 
-        print(f"- Rule: {rule_name} ({rule_id})")
-        print(f"  Location: {location_uri}:{start_line}")
-        print(f"  Message: {message}")
-        print("")
+    print(markdown_summary)
 
 
 if __name__ == "__main__":
