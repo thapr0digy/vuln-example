@@ -25,7 +25,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup uv package manager
-        uses: vimeo-actions/setup-uv@main # Using because python.json only exists there
+        uses: astral-sh/setup-uv@v6
 
       - name: Setup Python
         uses: actions/setup-python@v5
