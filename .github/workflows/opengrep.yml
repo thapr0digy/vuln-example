@@ -68,7 +68,7 @@ jobs:
           uv run pr_parse.py pr.sarif pr.diff
         env:
           # The GITHUB_TOKEN is required for the PyGithub to authenticate with the API.
-          GITHUB_TOKEN: ${{ secrets.PR_COMMENT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.VULN_TOKEN}}
           REPOSITORY: ${{ github.repository }}
           EVENT_NUM: ${{ github.event.number }}
           COMMIT_ID: ${{ github.event.pull_request.head.sha }}
