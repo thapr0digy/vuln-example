@@ -42,7 +42,7 @@ jobs:
         id: opengrep-pr
         run: |
           export PYTHONIOENCODING=utf-8
-          opengrep scan --config "p/cwe-top-25" --sarif > pr.sarif
+          opengrep scan --config "p/default" --sarif > pr.sarif
           echo "SARIF_PR_FILENAME=pr.sarif" >> "$GITHUB_OUTPUT"
 
       - name: Generate git diff for PR
