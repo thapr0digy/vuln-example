@@ -201,16 +201,23 @@ def create_review_findings(
         \t**Location:** [{finding["location"]}:{finding["start_line"]}]({file_location})
         \t**Message:** {finding["message"]}
         """
-        print(finding["start_line"])
-        print(finding["end_line"])
-        review_comment = ReviewComment(
-            path=finding["location"],
-            body=comment_message,
-            start_line=finding["start_line"],
-            line=finding["end_line"],
-        )
+
+        if finding["start_line"] == finding["end_line"]:
+            review_comment = ReviewComment(
+                path=finding["location"],
+                body=comment_message,
+                start_line=finding["start_line"],
+            )
+        else:
+            review_comment = ReviewComment(
+                path=finding["location"],
+                body=comment_message,
+                start_line=finding["start_line"],
+                line=finding["end_line"],
+            )
+
         review_comments.append(review_comment)
-    print(review_comments)
+
     pr.create_review(
         commit=commit, body=commit_message, event="COMMENT", comments=review_comments
     )
