@@ -206,7 +206,7 @@ def create_review_findings(
             review_comment = ReviewComment(
                 path=finding["location"],
                 body=comment_message,
-                position=finding["start_line"],
+                line=finding["start_line"],
             )
         else:
             review_comment = ReviewComment(
