@@ -65,7 +65,7 @@ jobs:
         if: ${{ always() && steps.opengrep-pr.outputs.SARIF_PR_FILENAME && steps.diff-action.outputs.DIFF_PR_FILENAME }}
         run: |
           uv sync 
-          uv run pr_parse.py pr.sarif pr.diff
+          uv run opengrep_diff.py pr.sarif pr.diff
         env:
           # The GITHUB_TOKEN is required for the PyGithub to authenticate with the API.
           GITHUB_TOKEN: ${{ secrets.VULN_TOKEN}}
