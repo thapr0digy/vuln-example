@@ -32,4 +32,4 @@ jobs:
       - name: Run Opengrep
         id: opengrep-pr
         run: |
-          opengrep ci
+          opengrep ci --pro-intrafile
