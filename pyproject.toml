@@ -5,7 +5,6 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "gitpython>=3.1.44",
-    "tree-sitter-language-pack>=0.8.0",
-    "unidiff>=0.7.5",
+    "marko>=2.1.4",
+    "pygithub>=2.6.1",
 ]
