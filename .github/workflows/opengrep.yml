@@ -24,15 +24,6 @@ jobs:
           ref: ${{ github.head_ref }} # The PR's branch
           fetch-depth: 0
 
-      - name: Setup uv package manager
-        uses: astral-sh/setup-uv@v6
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-          update-environment: false
-
       - name: Setup Opengrep
         run: |
           curl -fsSL https://raw.githubusercontent.com/opengrep/opengrep/main/install.sh | bash
@@ -41,38 +32,4 @@ jobs:
       - name: Run Opengrep
         id: opengrep-pr
         run: |
-          export PYTHONIOENCODING=utf-8
-          opengrep scan --config "p/default" --sarif > pr.sarif
-          echo "SARIF_PR_FILENAME=pr.sarif" >> "$GITHUB_OUTPUT"
-
-      - name: Generate git diff for PR
-        id: diff-action
-        run: |
-          git diff origin/${{ github.base_ref }} origin/${{ github.head_ref }} > pr.diff
-          echo "DIFF_PR_FILENAME=pr.diff" >> "$GITHUB_OUTPUT"
-          echo "COMMIT_URL=${{ github.server_url }}/${{ github.repository }}/blob/${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: artifacts
-          path: |
-            pr.sarif
-            pr.diff
-
-      - name: Identify new findings
-        id: opengrep-results
-        if: ${{ always() && steps.opengrep-pr.outputs.SARIF_PR_FILENAME && steps.diff-action.outputs.DIFF_PR_FILENAME }}
-        run: |
-          uv sync 
-          uv run opengrep_diff.py pr.sarif pr.diff
-        env:
-          # The GITHUB_TOKEN is required for the PyGithub to authenticate with the API.
-          GITHUB_TOKEN: ${{ secrets.VULN_TOKEN}}
-          REPOSITORY: ${{ github.repository }}
-          EVENT_NUM: ${{ github.event.number }}
-          COMMIT_ID: ${{ github.event.pull_request.head.sha }}
-
-      - name: Check for failure
-        if: ${{ steps.opengrep-results.outputs.status == 'failure' }}
-        run: exit 1
+          opengrep ci --config "p/default"
