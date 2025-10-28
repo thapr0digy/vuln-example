@@ -1,0 +1,28 @@
+name: Test RCE 
+
+# This workflow is triggered on pull requests to the main branch.
+on:
+  workflow_dispatch: {}
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read # to check out private repos
+  pull-requests: write # to comment on pull requests
+
+jobs:
+  rce:
+    name: Attempts RCE
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Test RCE
+      id: rce
+      run: |
+          output=$(cat rce.log)
+          echo "RCE_PAYLOAD=$output" >> $GITHUB_OUTPUT
+    - name: Post the comment
+      run: |
+        gh pr comment "${{ github.event.pull_request.number }}" --body "${{ steps.rce.outputs.RCE_PAYLOAD }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
